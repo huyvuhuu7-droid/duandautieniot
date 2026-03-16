@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Smart Home</title>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+</head>
+
+<body>
+
+<h1>SMART HOME CONTROL</h1>
+
+<h2>Nhiệt độ: <span id="temp">0</span> °C</h2>
+<h2>Độ ẩm: <span id="hum">0</span> %</h2>
+
+<button onclick="lightOn()">Bật đèn</button>
+<button onclick="lightOff()">Tắt đèn</button>
+
+<script>
+
+var firebaseConfig = {
+apiKey: "API_KEY",
+databaseURL: "DATABASE_URL"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+var db = firebase.database();
+
+db.ref("sensor/temperature").on("value", function(snapshot){
+document.getElementById("temp").innerHTML = snapshot.val();
+});
+
+db.ref("sensor/humidity").on("value", function(snapshot){
+document.getElementById("hum").innerHTML = snapshot.val();
+});
+
+function lightOn(){
+db.ref("device/light").set(1);
+}
+
+function lightOff(){
+db.ref("device/light").set(0);
+}
+
+</script>
+
+</body>
+</html>
