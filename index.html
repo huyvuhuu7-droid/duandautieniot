@@ -1,53 +1,170 @@
 <!DOCTYPE html>
-<html>
+
+<html lang="vi">
 <head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Smart Home</title>
 
+<!-- Firebase -->
+
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+<!-- Chart -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+    font-family: Arial;
+    margin: 0;
+    background: linear-gradient(to right, #4facfe, #00f2fe);
+    text-align: center;
+    color: white;
+}
+
+h1 {
+    padding: 20px;
+}
+
+.container {
+    padding: 10px;
+}
+
+.card {
+    background: white;
+    color: black;
+    margin: 10px auto;
+    padding: 15px;
+    border-radius: 12px;
+    width: 320px;
+}
+
+button {
+    padding: 10px 15px;
+    margin: 5px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.on { background: green; color: white; }
+.off { background: red; color: white; }
+
+.status {
+    font-weight: bold;
+}
+</style>
 
 </head>
 
 <body>
 
-<h1>SMART HOME CONTROL</h1>
+<h1>🏠 SMART HOME</h1>
 
-<h2>Nhiệt độ: <span id="temp">0</span> °C</h2>
-<h2>Độ ẩm: <span id="hum">0</span> %</h2>
+<div class="container">
 
-<button onclick="lightOn()">Bật đèn</button>
-<button onclick="lightOff()">Tắt đèn</button>
+```
+<div class="card">
+    🌡 Nhiệt độ: <span id="temp">--</span> °C
+</div>
+
+<div class="card">
+    💧 Độ ẩm: <span id="hum">--</span> %
+</div>
+
+<div class="card">
+    💡 Đèn: <span id="lightStatus" class="status">--</span><br>
+    <button class="on" onclick="setDevice('light',1)">ON</button>
+    <button class="off" onclick="setDevice('light',0)">OFF</button>
+</div>
+
+<div class="card">
+    🌀 Quạt: <span id="fanStatus" class="status">--</span><br>
+    <button class="on" onclick="setDevice('fan',1)">ON</button>
+    <button class="off" onclick="setDevice('fan',0)">OFF</button>
+</div>
+
+<div class="card">
+    📊 Biểu đồ nhiệt độ
+    <canvas id="chart"></canvas>
+</div>
+```
+
+</div>
 
 <script>
 
+// ===== FIREBASE CONFIG =====
 var firebaseConfig = {
   apiKey: "AIzaSyCI8T41kd_xgC8GcujIyubfRqieNKvksYM",
   databaseURL: "https://duandautien-2511-default-rtdb.firebaseio.com/"
 };
 
 firebase.initializeApp(firebaseConfig);
-
 var db = firebase.database();
 
-// đọc dữ liệu
-db.ref("/sensor/temperature").on("value", function(snapshot){
-  document.getElementById("temp").innerHTML = snapshot.val();
+// ===== SENSOR =====
+db.ref("sensor/temperature").on("value", function(snapshot){
+    var val = snapshot.val();
+    document.getElementById("temp").innerHTML = val ?? "--";
+    updateChart(val);
 });
 
-db.ref("/sensor/humidity").on("value", function(snapshot){
-  document.getElementById("hum").innerHTML = snapshot.val();
+db.ref("sensor/humidity").on("value", function(snapshot){
+    document.getElementById("hum").innerHTML = snapshot.val() ?? "--";
 });
 
-// điều khiển
-function lightOn(){
-  db.ref("/device/light").set(1);
+// ===== DEVICE =====
+db.ref("device/light").on("value", function(snapshot){
+    document.getElementById("lightStatus").innerHTML = snapshot.val() == 1 ? "ON" : "OFF";
+});
+
+db.ref("device/fan").on("value", function(snapshot){
+    document.getElementById("fanStatus").innerHTML = snapshot.val() == 1 ? "ON" : "OFF";
+});
+
+function setDevice(name, value){
+    db.ref("device/" + name).set(value);
 }
 
-function lightOff(){
-  db.ref("/device/light").set(0);
+// ===== CHART =====
+var labels = [];
+var data = [];
+
+var chart = new Chart(document.getElementById("chart"), {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: "Nhiệt độ",
+            data: data,
+            borderWidth: 2,
+            fill: false
+        }]
+    }
+});
+
+function updateChart(val){
+    if(val == null) return;
+
+    var time = new Date().toLocaleTimeString();
+
+    labels.push(time);
+    data.push(val);
+
+    if(labels.length > 10){
+        labels.shift();
+        data.shift();
+    }
+
+    chart.update();
 }
 
 </script>
 
 </body>
 </html>
+
