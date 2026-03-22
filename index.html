@@ -2,20 +2,15 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Smart Home</title>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
-<!-- Chart -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body {
     font-family: Arial;
-    margin: 0;
     background: linear-gradient(to right, #4facfe, #00f2fe);
     text-align: center;
     color: white;
@@ -28,49 +23,31 @@ body {
     border-radius: 12px;
     width: 320px;
 }
-button {
-    padding: 10px;
-    margin: 5px;
-    border-radius: 8px;
+.alert {
+    font-weight: bold;
+    font-size: 20px;
 }
-.on { background: green; color: white; }
-.off { background: red; color: white; }
 </style>
-
 </head>
 
 <body>
 
 <h1>🏠 SMART HOME</h1>
 
+<div class="card">🌡 Nhiệt độ: <span id="temp">--</span> °C</div>
+<div class="card">💧 Độ ẩm: <span id="hum">--</span> %</div>
+
 <div class="card">
-    🌡 Nhiệt độ: <span id="temp">--</span> °C
+🚨 Cảnh báo: <span id="alertStatus" class="alert">--</span>
 </div>
 
 <div class="card">
-    💧 Độ ẩm: <span id="hum">--</span> %
-</div>
-
-<div class="card">
-    💡 Đèn: <span id="lightStatus">--</span><br>
-    <button class="on" onclick="setDevice('light',1)">ON</button>
-    <button class="off" onclick="setDevice('light',0)">OFF</button>
-</div>
-
-<div class="card">
-    🌀 Quạt: <span id="fanStatus">--</span><br>
-    <button class="on" onclick="setDevice('fan',1)">ON</button>
-    <button class="off" onclick="setDevice('fan',0)">OFF</button>
-</div>
-
-<div class="card">
-    📊 Biểu đồ nhiệt độ
-    <canvas id="chart"></canvas>
+📊 Biểu đồ nhiệt độ
+<canvas id="chart"></canvas>
 </div>
 
 <script>
 
-// ===== FIREBASE CONFIG =====
 var firebaseConfig = {
   apiKey: "AIzaSyCI8T41kd_xgC8GcujIyubfRqieNKvksYM",
   databaseURL: "https://duandautien-2511-default-rtdb.firebaseio.com/"
@@ -79,31 +56,31 @@ var firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 var db = firebase.database();
 
-// ===== SENSOR (SỬA PATH CHO ĐÚNG ESP32) =====
-db.ref("TEMP").on("value", function(snapshot){
-    var val = snapshot.val();
+// ===== SENSOR =====
+db.ref("TEMP").on("value", function(s){
+    var val = s.val();
     document.getElementById("temp").innerHTML = val ?? "--";
     updateChart(val);
 });
 
-db.ref("HUMI").on("value", function(snapshot){
-    document.getElementById("hum").innerHTML = snapshot.val() ?? "--";
+db.ref("HUMI").on("value", function(s){
+    document.getElementById("hum").innerHTML = s.val() ?? "--";
 });
 
-// ===== DEVICE =====
-db.ref("device/light").on("value", function(snapshot){
-    document.getElementById("lightStatus").innerHTML =
-        snapshot.val() == 1 ? "ON" : "OFF";
-});
+// ===== ALERT =====
+db.ref("ALERT").on("value", function(s){
+    var val = s.val();
 
-db.ref("device/fan").on("value", function(snapshot){
-    document.getElementById("fanStatus").innerHTML =
-        snapshot.val() == 1 ? "ON" : "OFF";
-});
+    var el = document.getElementById("alertStatus");
 
-function setDevice(name, value){
-    db.ref("device/" + name).set(value);
-}
+    if(val == 1){
+        el.innerHTML = "NGUY HIỂM!";
+        el.style.color = "red";
+    } else {
+        el.innerHTML = "Bình thường";
+        el.style.color = "green";
+    }
+});
 
 // ===== CHART =====
 var labels = [];
@@ -116,8 +93,7 @@ var chart = new Chart(document.getElementById("chart"), {
         datasets: [{
             label: "Nhiệt độ",
             data: data,
-            borderWidth: 2,
-            fill: false
+            borderWidth: 2
         }]
     }
 });
@@ -142,4 +118,3 @@ function updateChart(val){
 
 </body>
 </html>
-
