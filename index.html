@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
@@ -7,13 +6,10 @@
 <title>Smart Home</title>
 
 <!-- Firebase -->
-
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
 <!-- Chart -->
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -24,15 +20,6 @@ body {
     text-align: center;
     color: white;
 }
-
-h1 {
-    padding: 20px;
-}
-
-.container {
-    padding: 10px;
-}
-
 .card {
     background: white;
     color: black;
@@ -41,21 +28,13 @@ h1 {
     border-radius: 12px;
     width: 320px;
 }
-
 button {
-    padding: 10px 15px;
+    padding: 10px;
     margin: 5px;
-    border: none;
     border-radius: 8px;
-    cursor: pointer;
 }
-
 .on { background: green; color: white; }
 .off { background: red; color: white; }
-
-.status {
-    font-weight: bold;
-}
 </style>
 
 </head>
@@ -64,9 +43,6 @@ button {
 
 <h1>🏠 SMART HOME</h1>
 
-<div class="container">
-
-```
 <div class="card">
     🌡 Nhiệt độ: <span id="temp">--</span> °C
 </div>
@@ -76,13 +52,13 @@ button {
 </div>
 
 <div class="card">
-    💡 Đèn: <span id="lightStatus" class="status">--</span><br>
+    💡 Đèn: <span id="lightStatus">--</span><br>
     <button class="on" onclick="setDevice('light',1)">ON</button>
     <button class="off" onclick="setDevice('light',0)">OFF</button>
 </div>
 
 <div class="card">
-    🌀 Quạt: <span id="fanStatus" class="status">--</span><br>
+    🌀 Quạt: <span id="fanStatus">--</span><br>
     <button class="on" onclick="setDevice('fan',1)">ON</button>
     <button class="off" onclick="setDevice('fan',0)">OFF</button>
 </div>
@@ -90,9 +66,6 @@ button {
 <div class="card">
     📊 Biểu đồ nhiệt độ
     <canvas id="chart"></canvas>
-</div>
-```
-
 </div>
 
 <script>
@@ -106,24 +79,26 @@ var firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 var db = firebase.database();
 
-// ===== SENSOR =====
-db.ref("sensor/temperature").on("value", function(snapshot){
+// ===== SENSOR (SỬA PATH CHO ĐÚNG ESP32) =====
+db.ref("TEMP").on("value", function(snapshot){
     var val = snapshot.val();
     document.getElementById("temp").innerHTML = val ?? "--";
     updateChart(val);
 });
 
-db.ref("sensor/humidity").on("value", function(snapshot){
+db.ref("HUMI").on("value", function(snapshot){
     document.getElementById("hum").innerHTML = snapshot.val() ?? "--";
 });
 
 // ===== DEVICE =====
 db.ref("device/light").on("value", function(snapshot){
-    document.getElementById("lightStatus").innerHTML = snapshot.val() == 1 ? "ON" : "OFF";
+    document.getElementById("lightStatus").innerHTML =
+        snapshot.val() == 1 ? "ON" : "OFF";
 });
 
 db.ref("device/fan").on("value", function(snapshot){
-    document.getElementById("fanStatus").innerHTML = snapshot.val() == 1 ? "ON" : "OFF";
+    document.getElementById("fanStatus").innerHTML =
+        snapshot.val() == 1 ? "ON" : "OFF";
 });
 
 function setDevice(name, value){
