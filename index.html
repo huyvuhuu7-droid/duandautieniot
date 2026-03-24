@@ -36,6 +36,7 @@ body {
 
 <div class="card">🌡 Nhiệt độ: <span id="temp">--</span> °C</div>
 <div class="card">💧 Độ ẩm: <span id="hum">--</span> %</div>
+<div class="card">🤖 AI: <span id="ai">--</span></div>
 
 <div class="card">
 🚨 Cảnh báo: <span id="alertStatus" class="alert">--</span>
@@ -48,6 +49,7 @@ body {
 
 <script>
 
+// ===== Firebase Config =====
 var firebaseConfig = {
   apiKey: "AIzaSyCI8T41kd_xgC8GcujIyubfRqieNKvksYM",
   databaseURL: "https://duandautien-2511-default-rtdb.firebaseio.com/"
@@ -57,23 +59,27 @@ firebase.initializeApp(firebaseConfig);
 var db = firebase.database();
 
 // ===== SENSOR =====
-db.ref("TEMP").on("value", function(s){
+db.ref("sensor/temperature").on("value", function(s){
     var val = s.val();
     document.getElementById("temp").innerHTML = val ?? "--";
     updateChart(val);
 });
 
-db.ref("HUMI").on("value", function(s){
+db.ref("sensor/humidity").on("value", function(s){
     document.getElementById("hum").innerHTML = s.val() ?? "--";
 });
 
-// ===== ALERT =====
-db.ref("ALERT").on("value", function(s){
+db.ref("sensor/AI").on("value", function(s){
+    document.getElementById("ai").innerHTML = s.val() ?? "--";
+});
+
+// ===== ALERT (dựa vào anomaly) =====
+db.ref("sensor/anomaly").on("value", function(s){
     var val = s.val();
 
     var el = document.getElementById("alertStatus");
 
-    if(val == 1){
+    if(val != null && val > 0.4){
         el.innerHTML = "NGUY HIỂM!";
         el.style.color = "red";
     } else {
