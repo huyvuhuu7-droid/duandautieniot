@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Smart Home</title>
+<title>Smart Home Pro</title>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -21,35 +21,59 @@ body {
     margin: 10px auto;
     padding: 15px;
     border-radius: 12px;
-    width: 320px;
+    width: 330px;
 }
 .alert {
     font-weight: bold;
     font-size: 20px;
+}
+.bar-bg {
+    background:#ddd;
+    border-radius:10px;
+    height:10px;
+    margin-top:8px;
+}
+.bar {
+    height:10px;
+    width:0%;
+    background:green;
+    border-radius:10px;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🏠 SMART HOME</h1>
+<h1>🏠 SMART HOME PRO</h1>
 
 <div class="card">🌡 Nhiệt độ: <span id="temp">--</span> °C</div>
 <div class="card">💧 Độ ẩm: <span id="hum">--</span> %</div>
 <div class="card">🤖 AI: <span id="ai">--</span></div>
 
 <div class="card">
-🚨 Cảnh báo: <span id="alertStatus" class="alert">--</span>
+⚠️ Anomaly: <span id="anom">--</span>
+<div class="bar-bg">
+    <div id="bar" class="bar"></div>
+</div>
+</div>
+
+<div class="card">
+🚨 Trạng thái: <span id="statusText" class="alert">--</span>
 </div>
 
 <div class="card">
 📊 Biểu đồ nhiệt độ
-<canvas id="chart"></canvas>
+<canvas id="chart1"></canvas>
+</div>
+
+<div class="card">
+📊 Biểu đồ Anomaly
+<canvas id="chart2"></canvas>
 </div>
 
 <script>
 
-// ===== Firebase Config =====
+// ===== Firebase =====
 var firebaseConfig = {
   apiKey: "AIzaSyCI8T41kd_xgC8GcujIyubfRqieNKvksYM",
   databaseURL: "https://duandautien-2511-default-rtdb.firebaseio.com/"
@@ -58,67 +82,121 @@ var firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 var db = firebase.database();
 
-// ===== SENSOR =====
-db.ref("sensor/temperature").on("value", function(s){
-    var val = s.val();
-    document.getElementById("temp").innerHTML = val ?? "--";
-    updateChart(val);
-});
+// ===== CHART TEMP =====
+var labels1 = [];
+var data1 = [];
 
-db.ref("sensor/humidity").on("value", function(s){
-    document.getElementById("hum").innerHTML = s.val() ?? "--";
-});
-
-db.ref("sensor/AI").on("value", function(s){
-    document.getElementById("ai").innerHTML = s.val() ?? "--";
-});
-
-// ===== ALERT (dựa vào anomaly) =====
-db.ref("sensor/anomaly").on("value", function(s){
-    var val = s.val();
-
-    var el = document.getElementById("alertStatus");
-
-    if(val != null && val > 0.4){
-        el.innerHTML = "NGUY HIỂM!";
-        el.style.color = "red";
-    } else {
-        el.innerHTML = "Bình thường";
-        el.style.color = "green";
-    }
-});
-
-// ===== CHART =====
-var labels = [];
-var data = [];
-
-var chart = new Chart(document.getElementById("chart"), {
+var chart1 = new Chart(document.getElementById("chart1"), {
     type: 'line',
     data: {
-        labels: labels,
+        labels: labels1,
         datasets: [{
             label: "Nhiệt độ",
-            data: data,
+            data: data1,
             borderWidth: 2
         }]
     }
 });
 
-function updateChart(val){
+function updateChart1(val){
     if(val == null) return;
 
     var time = new Date().toLocaleTimeString();
 
-    labels.push(time);
-    data.push(val);
+    labels1.push(time);
+    data1.push(val);
 
-    if(labels.length > 10){
-        labels.shift();
-        data.shift();
+    if(labels1.length > 10){
+        labels1.shift();
+        data1.shift();
     }
 
-    chart.update();
+    chart1.update();
 }
+
+// ===== CHART ANOMALY =====
+var labels2 = [];
+var data2 = [];
+
+var chart2 = new Chart(document.getElementById("chart2"), {
+    type: 'line',
+    data: {
+        labels: labels2,
+        datasets: [{
+            label: "Anomaly",
+            data: data2,
+            borderWidth: 2
+        }]
+    }
+});
+
+function updateChart2(val){
+    var time = new Date().toLocaleTimeString();
+
+    labels2.push(time);
+    data2.push(val);
+
+    if(labels2.length > 10){
+        labels2.shift();
+        data2.shift();
+    }
+
+    chart2.update();
+}
+
+// ===== FIREBASE DATA =====
+
+// Temperature
+db.ref("sensor/temperature").on("value", function(s){
+    var val = s.val();
+    document.getElementById("temp").innerHTML = val ?? "--";
+    updateChart1(val);
+});
+
+// Humidity
+db.ref("sensor/humidity").on("value", function(s){
+    document.getElementById("hum").innerHTML = s.val() ?? "--";
+});
+
+// AI
+db.ref("sensor/AI").on("value", function(s){
+    document.getElementById("ai").innerHTML = s.val() ?? "--";
+});
+
+// Anomaly + xử lý thông minh
+db.ref("sensor/anomaly").on("value", function(s){
+    var val = s.val();
+
+    document.getElementById("anom").innerHTML = val ?? "--";
+
+    if(val == null) return;
+
+    var bar = document.getElementById("bar");
+    var status = document.getElementById("statusText");
+
+    // ===== Thanh tiến trình =====
+    var percent = Math.min(val * 100, 100);
+    bar.style.width = percent + "%";
+
+    // ===== Trạng thái =====
+    if(val < 0.3){
+        bar.style.background = "green";
+        status.innerHTML = "Ổn định";
+        status.style.color = "green";
+    }
+    else if(val < 0.6){
+        bar.style.background = "orange";
+        status.innerHTML = "Cảnh báo";
+        status.style.color = "orange";
+    }
+    else{
+        bar.style.background = "red";
+        status.innerHTML = "NGUY HIỂM!";
+        status.style.color = "red";
+    }
+
+    updateChart2(val);
+});
 
 </script>
 
