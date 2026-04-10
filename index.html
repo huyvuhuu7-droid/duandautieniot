@@ -2,81 +2,150 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Smart Home Pro</title>
+<title>Giám Sát Môi Trường</title>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Segoe UI", sans-serif;
+}
+
 body {
-    font-family: Arial;
-    background: linear-gradient(to right, #4facfe, #00f2fe);
-    text-align: center;
+    background: #0f172a;
     color: white;
+    display: flex;
+    justify-content: center;
 }
-.card {
-    background: white;
-    color: black;
-    margin: 10px auto;
+
+.app {
+    width: 100%;
+    max-width: 420px;
     padding: 15px;
-    border-radius: 12px;
-    width: 330px;
 }
-.alert {
-    font-weight: bold;
+
+/* HEADER */
+.header {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.header h1 {
     font-size: 20px;
 }
-.bar-bg {
-    background:#ddd;
-    border-radius:10px;
-    height:10px;
-    margin-top:8px;
+
+/* CARD */
+.card {
+    background: #1e293b;
+    border-radius: 18px;
+    padding: 15px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
+
+/* GRID */
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.value {
+    font-size: 22px;
+    font-weight: bold;
+    margin-top: 5px;
+}
+
+/* STATUS */
+.alert {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+/* BAR */
+.bar-bg {
+    background: #334155;
+    border-radius: 10px;
+    height: 8px;
+    margin-top: 10px;
+}
+
 .bar {
-    height:10px;
-    width:0%;
-    background:green;
-    border-radius:10px;
+    height: 8px;
+    width: 0%;
+    background: lime;
+    border-radius: 10px;
+    transition: 0.4s;
+}
+
+canvas {
+    margin-top: 10px;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🏠 SMART HOME PRO</h1>
+<div class="app">
 
-<div class="card">🌡 Nhiệt độ: <span id="temp">--</span> °C</div>
-<div class="card">💧 Độ ẩm: <span id="hum">--</span> %</div>
-<div class="card">🤖 AI: <span id="ai">--</span></div>
+    <div class="header">
+        <h1>🌱 GIÁM SÁT MÔI TRƯỜNG</h1>
+    </div>
 
-<div class="card">
-⚠️ Anomaly: <span id="anom">--</span>
-<div class="bar-bg">
-    <div id="bar" class="bar"></div>
-</div>
-</div>
+    <div class="grid">
+        <div class="card">
+            🌡 Nhiệt độ
+            <div id="temp" class="value">--</div>
+        </div>
 
-<div class="card">
-🚨 Trạng thái: <span id="statusText" class="alert">--</span>
-</div>
+        <div class="card">
+            💧 Độ ẩm
+            <div id="hum" class="value">--</div>
+        </div>
 
-<div class="card">
-📊 Biểu đồ nhiệt độ
-<canvas id="chart1"></canvas>
-</div>
+        <div class="card">
+            🤖 AI
+            <div id="ai" class="value">--</div>
+        </div>
 
-<div class="card">
-📊 Biểu đồ Anomaly
-<canvas id="chart2"></canvas>
+        <div class="card">
+            ⚠️ Anomaly
+            <div id="anom" class="value">--</div>
+        </div>
+    </div>
+
+    <div class="card">
+        🚨 Trạng thái:
+        <div id="statusText" class="alert">--</div>
+
+        <div class="bar-bg">
+            <div id="bar" class="bar"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        📊 Nhiệt độ
+        <canvas id="chart1"></canvas>
+    </div>
+
+    <div class="card">
+        📊 Anomaly
+        <canvas id="chart2"></canvas>
+    </div>
+
 </div>
 
 <script>
 
 // ===== Firebase =====
 var firebaseConfig = {
-  apiKey: "AIzaSyCI8T41kd_xgC8GcujIyubfRqieNKvksYM",
-  databaseURL: "https://duandautien-2511-default-rtdb.firebaseio.com/"
+  apiKey: "YOUR_API_KEY",
+  databaseURL: "YOUR_DATABASE_URL"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -89,10 +158,10 @@ var data1 = [];
 var chart1 = new Chart(document.getElementById("chart1"), {
     type: 'line',
     data: {
-        labels: labels1,
+        labels: [],
         datasets: [{
             label: "Nhiệt độ",
-            data: data1,
+            data: [],
             borderWidth: 2
         }]
     }
@@ -101,15 +170,21 @@ var chart1 = new Chart(document.getElementById("chart1"), {
 function updateChart1(val){
     if(val == null) return;
 
-    var time = new Date().toLocaleTimeString();
+    var now = Date.now();
+    var timeLabel = new Date().toLocaleTimeString();
 
-    labels1.push(time);
-    data1.push(val);
+    labels1.push({ time: now, label: timeLabel });
+    data1.push({ time: now, value: val });
 
-    if(labels1.length > 10){
+    var limit = 20 * 60 * 1000;
+
+    while(labels1.length && (now - labels1[0].time > limit)){
         labels1.shift();
         data1.shift();
     }
+
+    chart1.data.labels = labels1.map(e => e.label);
+    chart1.data.datasets[0].data = data1.map(e => e.value);
 
     chart1.update();
 }
@@ -121,30 +196,36 @@ var data2 = [];
 var chart2 = new Chart(document.getElementById("chart2"), {
     type: 'line',
     data: {
-        labels: labels2,
+        labels: [],
         datasets: [{
             label: "Anomaly",
-            data: data2,
+            data: [],
             borderWidth: 2
         }]
     }
 });
 
 function updateChart2(val){
-    var time = new Date().toLocaleTimeString();
+    var now = Date.now();
+    var timeLabel = new Date().toLocaleTimeString();
 
-    labels2.push(time);
-    data2.push(val);
+    labels2.push({ time: now, label: timeLabel });
+    data2.push({ time: now, value: val });
 
-    if(labels2.length > 10){
+    var limit = 20 * 60 * 1000;
+
+    while(labels2.length && (now - labels2[0].time > limit)){
         labels2.shift();
         data2.shift();
     }
 
+    chart2.data.labels = labels2.map(e => e.label);
+    chart2.data.datasets[0].data = data2.map(e => e.value);
+
     chart2.update();
 }
 
-// ===== FIREBASE DATA =====
+// ===== FIREBASE =====
 
 // Temperature
 db.ref("sensor/temperature").on("value", function(s){
@@ -163,26 +244,23 @@ db.ref("sensor/AI").on("value", function(s){
     document.getElementById("ai").innerHTML = s.val() ?? "--";
 });
 
-// Anomaly + xử lý thông minh
+// Anomaly
 db.ref("sensor/anomaly").on("value", function(s){
     var val = s.val();
 
     document.getElementById("anom").innerHTML = val ?? "--";
-
     if(val == null) return;
 
     var bar = document.getElementById("bar");
     var status = document.getElementById("statusText");
 
-    // ===== Thanh tiến trình =====
     var percent = Math.min(val * 100, 100);
     bar.style.width = percent + "%";
 
-    // ===== Trạng thái =====
     if(val < 0.3){
-        bar.style.background = "green";
+        bar.style.background = "lime";
         status.innerHTML = "Ổn định";
-        status.style.color = "green";
+        status.style.color = "lime";
     }
     else if(val < 0.6){
         bar.style.background = "orange";
